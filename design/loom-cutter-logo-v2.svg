@@ -1,0 +1,22 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded-square macOS-style background, warm cream. -->
+  <rect width="1024" height="1024" rx="220" fill="#FBFBFA"/>
+
+  <!-- Simplified diamond waveform: 5 thick bars per side, rounded caps.
+       Reads cleanly at 32×32 because the silhouette is what carries the shape. -->
+  <g fill="#2F3437">
+    <!-- Left half, growing toward center -->
+    <rect x="200" y="490"  width="60" height="44"  rx="22"/>
+    <rect x="288" y="448"  width="60" height="128" rx="30"/>
+    <rect x="376" y="386"  width="60" height="252" rx="30"/>
+    <rect x="464" y="304"  width="60" height="416" rx="30"/>
+    <!-- Right half mirror -->
+    <rect x="500" y="304"  width="60" height="416" rx="30"/>
+    <rect x="588" y="386"  width="60" height="252" rx="30"/>
+    <rect x="676" y="448"  width="60" height="128" rx="30"/>
+    <rect x="764" y="490"  width="60" height="44"  rx="22"/>
+  </g>
+
+  <!-- The pale-red cut accent — the single point of color. -->
+  <circle cx="512" cy="512" r="34" fill="#9F2F2D"/>
+</svg>
