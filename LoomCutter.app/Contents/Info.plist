@@ -4,6 +4,8 @@
 <dict>
     <key>CFBundleExecutable</key>
     <string>LoomCutter</string>
+    <key>CFBundleIconFile</key>
+    <string>LoomCutter</string>
     <key>CFBundleIdentifier</key>
     <string>co.sylven.loomcutter</string>
     <key>CFBundleName</key>
