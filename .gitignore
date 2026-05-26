@@ -1,0 +1,37 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# UI build artifacts + deps
+ui/node_modules/
+ui/dist/
+
+# Whisper model cache (downloaded on first run, ~1.5GB)
+.cache/
+
+# Project data — each user has their own Looms
+projects/*/
+!projects/.gitkeep
+
+# macOS
+.DS_Store
+
+# Editor / tooling
+.idea/
+.vscode/
+*.swp
+
+# Claude Code session state
+.claude/launch.json
+
+# Local env
+.env
+.env.local
+
+# Renders mirrored to user's Downloads — not tracked
+~/Downloads/looms-cut/

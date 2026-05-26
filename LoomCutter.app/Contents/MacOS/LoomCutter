@@ -1,0 +1,22 @@
+#!/bin/bash
+# Launcher inside LoomCutter.app — boots the production server, opens browser,
+# then sleeps so the Dock icon stays alive while the server is running.
+#
+# The .app must live in the project root (alongside scripts/, ui/, server/).
+
+set -e
+
+# Resolve the project root: .app is at <root>/LoomCutter.app, this script at
+# <root>/LoomCutter.app/Contents/MacOS/LoomCutter, so the root is three levels up.
+HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$HERE"
+
+# Logs go to ~/Library/Logs/LoomCutter/ so they survive crashes.
+LOG_DIR="$HOME/Library/Logs/LoomCutter"
+mkdir -p "$LOG_DIR"
+exec >> "$LOG_DIR/launch.log" 2>&1
+
+echo "==== $(date) launching from $HERE ===="
+
+# Reuse the existing start script in --prod mode.
+exec "$HERE/scripts/start.sh" --prod

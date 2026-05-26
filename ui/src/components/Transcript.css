@@ -1,0 +1,70 @@
+.transcript-section {
+  padding: 40px 48px 48px;
+  border-top: 1px solid var(--border);
+}
+
+.transcript {
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.95;
+  color: var(--ink);
+  margin: 0 0 24px 0;
+  /* Word-granular custom selection lives on .word.selected — turn off the
+     native partial-character text selection so dragging stays word-aligned. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.word {
+  padding: 1px 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  white-space: pre-wrap;
+}
+.word:hover { background: var(--surface-2); }
+.word.current {
+  background: var(--ink);
+  color: var(--canvas);
+}
+.word.cut {
+  text-decoration: line-through;
+  text-decoration-color: var(--pale-red-ink);
+  text-decoration-thickness: 1.5px;
+  color: var(--muted);
+  background: transparent;
+}
+.word.cut.current {
+  background: var(--ink);
+  color: var(--canvas);
+}
+.word.selected {
+  background: rgba(47, 52, 55, 0.18);
+  color: var(--ink);
+}
+/* Cut + selected: hint that right-clicking would un-cut these words. */
+.word.cut.selected {
+  background: rgba(159, 47, 45, 0.18);
+  color: var(--ink-soft);
+}
+.word.selected.current {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.transcript-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted-2);
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.transcript-hint kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--ink-soft);
+}

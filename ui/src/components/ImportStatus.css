@@ -1,0 +1,106 @@
+.import-status {
+  padding: 56px 64px 72px;
+  max-width: 560px;
+  margin: 0 auto;
+  font-family: var(--sans);
+}
+
+.import-status h2 {
+  margin: 0 0 4px 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  color: var(--ink);
+}
+.import-id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted-2);
+  letter-spacing: 0.04em;
+  margin-bottom: 28px;
+}
+
+.upload-bar {
+  position: relative;
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+.upload-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ink-soft);
+  transition: width 160ms ease-out;
+}
+.upload-bar-label {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted-2);
+  letter-spacing: 0.04em;
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.step {
+  display: flex;
+  align-items: center;
+  padding: 9px 0;
+  gap: 14px;
+  color: var(--muted-2);
+  font-size: 14px;
+  transition: color 120ms ease;
+}
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted-2);
+  background: transparent;
+  flex-shrink: 0;
+  transition: all 180ms ease;
+}
+.step.done {
+  color: var(--ink-soft);
+}
+.step.done .step-dot {
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
+}
+.step.active {
+  color: var(--ink);
+}
+.step.active .step-dot {
+  border-color: var(--ink);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(47, 52, 55, 0.0); }
+  50% { box-shadow: 0 0 0 6px rgba(47, 52, 55, 0.08); }
+}
+
+.step-label { flex: 1; }
+.step-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted-2);
+  letter-spacing: 0.04em;
+}
+
+.import-error {
+  margin-top: 28px;
+  padding: 16px;
+  background: var(--pale-red-bg);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--pale-red-ink);
+  white-space: pre-wrap;
+}

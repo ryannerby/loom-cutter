@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Loom Cutter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;1,400&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --canvas: #FBFBFA;
+    --surface: #FFFFFF;
+    --surface-2: #F9F9F8;
+    --border: #EAEAEA;
+    --ink: #2F3437;
+    --ink-soft: #57534E;
+    --muted: #787774;
+    --muted-2: #A8A39A;
+
+    --pale-red-bg: #FDEBEC;
+    --pale-red-ink: #9F2F2D;
+
+    --sans: 'SF Pro Display', 'Geist Sans', 'Helvetica Neue', system-ui, sans-serif;
+    --serif: 'Newsreader', Georgia, serif;
+    --mono: 'Geist Mono', 'SF Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(180, 140, 90, 0.03), transparent 50%),
+      radial-gradient(circle at 85% 90%, rgba(120, 100, 80, 0.02), transparent 55%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .window {
+    position: relative;
+    z-index: 1;
+    max-width: 980px;
+    margin: 36px auto 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* Title bar — only meta the user needs */
+  .titlebar {
+    height: 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    position: relative;
+  }
+  .traffic { display: flex; gap: 8px; }
+  .traffic span {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #E5E3DF;
+  }
+  .titlebar-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .titlebar-right {
+    margin-left: auto;
+  }
+
+  /* Render button — the only action that matters */
+  .btn-render {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 5px;
+    border: 1px solid #111111;
+    background: #111111;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: background 180ms ease, transform 120ms ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-render:hover { background: #2A2A2A; }
+  .btn-render:active { transform: scale(0.98); }
+  .btn-render svg { width: 10px; height: 10px; }
+
+  /* ---------- Stage: video centered, restrained ---------- */
+  .stage {
+    padding: 40px 48px 32px;
+    display: flex;
+    justify-content: center;
+  }
+  .video-frame {
+    width: 100%;
+    max-width: 640px;
+    aspect-ratio: 16 / 9;
+    background: #1A1A18;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .play-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .play-btn svg { width: 14px; height: 14px; margin-left: 2px; fill: var(--ink); }
+  .time-pill {
+    position: absolute;
+    bottom: 12px;
+    right: 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.8);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Waveform ---------- */
+  .waveform-section {
+    padding: 0 48px 36px;
+    position: relative;
+  }
+  .zoom-indicator {
+    position: absolute;
+    top: -22px;
+    right: 48px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted-2);
+    letter-spacing: 0.04em;
+    user-select: none;
+  }
+  .zoom-indicator kbd {
+    font-family: var(--mono);
+    font-size: 9px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--muted);
+    margin: 0 1px;
+  }
+  .scroll-host {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .scroll-host::-webkit-scrollbar { height: 6px; }
+  .scroll-host::-webkit-scrollbar-track { background: transparent; }
+  .scroll-host::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+  .scroll-host::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+  .zoom-inner {
+    width: 100%;
+    transform-origin: 0 0;
+    will-change: width;
+  }
+  .waveform-wrap {
+    position: relative;
+    height: 120px;
+  }
+  .waveform { position: relative; height: 100%; width: 100%; }
+  .wave-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .wave-svg path.kept { fill: var(--ink-soft); }
+  .wave-svg path.cut { fill: var(--pale-red-ink); opacity: 0.55; }
+
+  .zero-line {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 1px;
+    background: var(--ink);
+    transform: translateY(-0.5px);
+    opacity: 0.12;
+  }
+
+  .snap-marker {
+    position: absolute;
+    top: 50%;
+    width: 1.5px;
+    height: 22px;
+    background: var(--pale-red-ink);
+    transform: translate(-50%, -50%);
+  }
+  .snap-marker::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: 50%;
+    margin-left: -2.5px;
+    width: 5px;
+    height: 5px;
+    background: var(--pale-red-ink);
+    border-radius: 50%;
+  }
+
+  .playhead {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 1.5px;
+    background: var(--ink);
+  }
+
+  .ruler {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted-2);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Transcript ---------- */
+  .transcript-section {
+    padding: 8px 48px 48px;
+    border-top: 1px solid var(--border);
+    padding-top: 40px;
+  }
+  .transcript {
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.95;
+    color: var(--ink);
+  }
+  .word {
+    padding: 1px 2px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .word:hover { background: var(--surface-2); }
+  .word.current {
+    background: #111111;
+    color: #FFFFFF;
+  }
+  .word.cut {
+    text-decoration: line-through;
+    text-decoration-color: var(--pale-red-ink);
+    text-decoration-thickness: 1.5px;
+    color: var(--muted);
+    background: var(--pale-red-bg);
+  }
+  .cut-chip {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: var(--pale-red-bg);
+    color: var(--pale-red-ink);
+    margin: 0 4px;
+    vertical-align: 2px;
+  }
+  .pause-marker {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface-2);
+    border: 1px dashed var(--border);
+    padding: 1px 8px;
+    border-radius: 4px;
+    margin: 0 2px;
+    text-decoration: line-through;
+    text-decoration-color: var(--pale-red-ink);
+  }
+
+  /* ---------- Scroll-entry animation ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="window">
+
+  <div class="titlebar">
+    <div class="traffic"><span></span><span></span><span></span></div>
+    <div class="titlebar-label">wiedmann-followup-2026-05-26.mp4</div>
+    <div class="titlebar-right">
+      <button class="btn-render">
+        Render
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l7 5-7 5V3z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="stage reveal">
+    <div class="video-frame">
+      <div class="play-btn">
+        <svg viewBox="0 0 16 16"><path d="M5 3l7 5-7 5V3z"/></svg>
+      </div>
+      <div class="time-pill">0:42 / 3:18</div>
+    </div>
+  </div>
+
+  <div class="waveform-section reveal">
+    <div class="zoom-indicator">
+      <span id="zoomLevel">1.0&times;</span> &nbsp;<kbd>&#8984;</kbd>scroll zoom &middot; <kbd>&#8679;</kbd>scroll pan
+    </div>
+    <div class="scroll-host" id="scrollHost">
+      <div class="zoom-inner" id="zoomInner">
+        <div class="waveform-wrap">
+          <div class="waveform" id="wave">
+            <svg class="wave-svg" id="waveSvg" viewBox="0 0 1000 120" preserveAspectRatio="none"></svg>
+            <div class="zero-line"></div>
+          </div>
+        </div>
+        <div class="ruler" id="ruler">
+          <span>0:00</span><span>0:30</span><span>1:00</span><span>1:30</span>
+          <span>2:00</span><span>2:30</span><span>3:00</span><span>3:18</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transcript-section reveal">
+    <p class="transcript">
+      <span class="word">Hey</span>
+      <span class="word">Donnie,</span>
+      <span class="word">I</span>
+      <span class="word">just</span>
+      <span class="word">finished</span>
+      <span class="word">a</span>
+      <span class="word">workflow</span>
+      <span class="word">that</span>
+      <span class="word">handles</span>
+      <span class="word">your</span>
+      <span class="word">order</span>
+      <span class="word">sync</span>
+      <span class="word">end-to-end</span>
+      <span class="word">and</span>
+
+      <span class="word cut">I</span>
+      <span class="word cut">wanted</span>
+      <span class="word cut">to,</span>
+      <span class="word cut">uh,</span>
+      <span class="word cut">let</span>
+      <span class="word cut">me</span>
+      <span class="word cut">restart</span>
+      <span class="word cut">that.</span>
+      <span class="cut-chip">false start</span>
+
+      <span class="word">wanted</span>
+      <span class="word">to</span>
+      <span class="word">show</span>
+      <span class="word">you</span>
+      <span class="word">what</span>
+      <span class="word">that</span>
+      <span class="word">looks</span>
+      <span class="word current">like</span>
+      <span class="word">in</span>
+      <span class="word">production.</span>
+      <span class="word">It's</span>
+
+      <span class="word cut">processing</span>
+      <span class="word cut">about</span>
+      <span class="word cut">two</span>
+      <span class="word cut">thousand</span>
+      <span class="word cut">orders—</span>
+      <span class="cut-chip">repeated take</span>
+
+      <span class="word">processing</span>
+      <span class="word">around</span>
+      <span class="word">two</span>
+      <span class="word">thousand</span>
+      <span class="word">orders</span>
+      <span class="word">a</span>
+      <span class="word">day</span>
+      <span class="word">with</span>
+      <span class="word">zero</span>
+      <span class="word">manual</span>
+      <span class="word">intervention.</span>
+
+      <span class="pause-marker">[1.8s]</span>
+
+      <span class="word">If</span>
+      <span class="word">you</span>
+      <span class="word">want</span>
+      <span class="word">to</span>
+      <span class="word">jump</span>
+      <span class="word">on</span>
+      <span class="word">a</span>
+      <span class="word">call</span>
+      <span class="word">I</span>
+      <span class="word">can</span>
+      <span class="word">walk</span>
+      <span class="word">you</span>
+      <span class="word">through</span>
+      <span class="word">it</span>
+      <span class="word">live.</span>
+    </p>
+  </div>
+
+</div>
+
+<script>
+  const wave = document.getElementById('wave');
+  const svg = document.getElementById('waveSvg');
+  const SVG_W = 1000, SVG_H = 120, MID = 60, MAX_AMP = 52;
+
+  const cuts = [
+    { start: 0.13, end: 0.22 },
+    { start: 0.46, end: 0.52 },
+    { start: 0.71, end: 0.76 },
+  ];
+  const snaps = [0.13, 0.22, 0.46, 0.52, 0.71, 0.76];
+
+  // --- Generate speech-like amplitudes (syllable bursts with quiet gaps) ---
+  const N = 520;
+  const amps = new Array(N).fill(0);
+  const syllables = [];
+  let t = 0;
+  while (t < 1) {
+    const dur = 0.010 + Math.random() * 0.035;
+    const isPause = Math.random() > 0.88;
+    const gap = isPause
+      ? 0.025 + Math.random() * 0.045
+      : 0.002 + Math.random() * 0.012;
+    syllables.push({ s: t, e: t + dur, peak: 0.35 + Math.random() * 0.6 });
+    t += dur + gap;
+  }
+  for (let i = 0; i < N; i++) {
+    const pos = i / N;
+    // Force near-silence at snap boundaries (so cuts visibly hit zero)
+    if (snaps.some(s => Math.abs(pos - s) < 0.006)) {
+      amps[i] = 0.02 + Math.random() * 0.02;
+      continue;
+    }
+    for (const syl of syllables) {
+      if (pos >= syl.s && pos <= syl.e) {
+        const local = (pos - syl.s) / (syl.e - syl.s);
+        const shape = Math.sin(local * Math.PI);
+        const jitter = 0.65 + 0.4 * Math.random();
+        amps[i] = syl.peak * shape * jitter;
+        break;
+      }
+    }
+  }
+
+  // --- Build SVG paths, split at cut boundaries so each segment colors itself ---
+  function buildPath(fromIdx, toIdx) {
+    const pts = [];
+    const xs = (i) => (i / (N - 1)) * SVG_W;
+    pts.push(`M ${xs(fromIdx).toFixed(2)} ${(MID - amps[fromIdx] * MAX_AMP).toFixed(2)}`);
+    for (let i = fromIdx + 1; i <= toIdx; i++) {
+      pts.push(`L ${xs(i).toFixed(2)} ${(MID - amps[i] * MAX_AMP).toFixed(2)}`);
+    }
+    for (let i = toIdx; i >= fromIdx; i--) {
+      pts.push(`L ${xs(i).toFixed(2)} ${(MID + amps[i] * MAX_AMP).toFixed(2)}`);
+    }
+    pts.push('Z');
+    return pts.join(' ');
+  }
+
+  // Build boundary index list to split path into kept/cut segments
+  const boundaries = new Set([0, N - 1]);
+  cuts.forEach(c => {
+    boundaries.add(Math.round(c.start * (N - 1)));
+    boundaries.add(Math.round(c.end * (N - 1)));
+  });
+  const sortedBounds = [...boundaries].sort((a, b) => a - b);
+
+  for (let i = 0; i < sortedBounds.length - 1; i++) {
+    const a = sortedBounds[i], b = sortedBounds[i + 1];
+    const midPos = (a + b) / 2 / (N - 1);
+    const inCut = cuts.some(c => midPos >= c.start && midPos <= c.end);
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', buildPath(a, b));
+    path.setAttribute('class', inCut ? 'cut' : 'kept');
+    svg.appendChild(path);
+  }
+
+  // --- Snap markers at zero-crossings the editor chose ---
+  snaps.forEach(pos => {
+    const m = document.createElement('div');
+    m.className = 'snap-marker';
+    m.style.left = `${pos * 100}%`;
+    wave.appendChild(m);
+  });
+
+  // --- Playhead ---
+  const ph = document.createElement('div');
+  ph.className = 'playhead';
+  ph.style.left = '22%';
+  wave.appendChild(ph);
+
+  // --- Zoom + pan (cmd/ctrl + wheel = zoom, shift + wheel = pan) ---
+  const scrollHost = document.getElementById('scrollHost');
+  const zoomInner = document.getElementById('zoomInner');
+  const zoomLevel = document.getElementById('zoomLevel');
+  let zoom = 1;
+  const MIN_ZOOM = 1, MAX_ZOOM = 20;
+
+  function applyZoom(newZoom, anchorClientX) {
+    const prevZoom = zoom;
+    zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+    if (zoom === prevZoom) return;
+
+    const hostRect = scrollHost.getBoundingClientRect();
+    const anchor = anchorClientX != null ? anchorClientX - hostRect.left : hostRect.width / 2;
+    const contentX = scrollHost.scrollLeft + anchor;
+    const ratio = zoom / prevZoom;
+
+    zoomInner.style.width = `${zoom * 100}%`;
+    scrollHost.scrollLeft = contentX * ratio - anchor;
+    zoomLevel.textContent = `${zoom.toFixed(1)}×`;
+  }
+
+  scrollHost.addEventListener('wheel', (e) => {
+    if (e.metaKey || e.ctrlKey) {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.01;
+      applyZoom(zoom * (1 + delta), e.clientX);
+    } else if (e.shiftKey) {
+      e.preventDefault();
+      scrollHost.scrollLeft += e.deltaY + e.deltaX;
+    } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      // horizontal trackpad gesture pans naturally
+    }
+  }, { passive: false });
+
+  // Keyboard zoom: cmd/ctrl + / -
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
+      e.preventDefault(); applyZoom(zoom * 1.25);
+    } else if ((e.metaKey || e.ctrlKey) && e.key === '-') {
+      e.preventDefault(); applyZoom(zoom / 1.25);
+    } else if ((e.metaKey || e.ctrlKey) && e.key === '0') {
+      e.preventDefault(); applyZoom(1);
+    }
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>

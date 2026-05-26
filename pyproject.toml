@@ -1,0 +1,24 @@
+[project]
+name = "loom-cutter"
+version = "0.1.0"
+description = "Local tool to cut raw Loom recordings — Whisper transcribe + LLM edit pass + ffmpeg render."
+requires-python = ">=3.11"
+dependencies = [
+    "faster-whisper>=1.0.3",
+    "anthropic>=0.40.0",
+    "ffmpeg-python>=0.2.0",
+]
+
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.20",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pipeline*", "server*"]

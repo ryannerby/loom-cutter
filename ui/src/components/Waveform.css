@@ -1,0 +1,186 @@
+.waveform-section {
+  padding: 0 48px 36px;
+  position: relative;
+}
+
+.zoom-indicator {
+  display: flex;
+  justify-content: flex-end;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted-2);
+  letter-spacing: 0.04em;
+  user-select: none;
+  margin-bottom: 8px;
+  height: 14px;
+}
+
+.scroll-host {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scroll-host::-webkit-scrollbar { height: 6px; }
+.scroll-host::-webkit-scrollbar-track { background: transparent; }
+.scroll-host::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.scroll-host::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+
+.zoom-inner {
+  width: 100%;
+  transform-origin: 0 0;
+  will-change: width;
+}
+
+.waveform-wrap {
+  position: relative;
+  height: 120px;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.wave-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+/* Strong contrast between kept (dark ink) and cut (muted gray-beige) directly
+   in the path fill — no rectangular overlay needed. */
+.wave-svg path.kept { fill: var(--ink); }
+.wave-svg path.cut  { fill: var(--muted-2); opacity: 0.35; }
+
+.zero-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--ink);
+  transform: translateY(-0.5px);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* A cut region is an INVISIBLE hit area — the path color does the visual
+   work. It hosts drag handles and absorbs right-clicks. */
+.cut-region {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: transparent;
+  cursor: context-menu;
+  z-index: 1;
+}
+.cut-region:hover {
+  background: rgba(159, 47, 45, 0.06);
+}
+
+/* Handles only appear when the parent cut-region is hovered — keeps the
+   timeline quiet at rest. */
+.drag-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.cut-region:hover .drag-handle { opacity: 1; }
+
+.drag-handle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2.5px;
+  height: 32px;
+  background: var(--pale-red-ink);
+  border-radius: 1px;
+  transition: height 120ms ease;
+}
+.drag-handle:hover::before { height: 44px; }
+.drag-handle-start { left: -6px; }
+.drag-handle-end   { right: -6px; }
+
+/* Selection range. Translucent overlay with sharp left/right edges and
+   visible scrub handles. Press Delete to turn into a cut; Esc to clear. */
+.selection {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  background: rgba(47, 52, 55, 0.18);
+  border-left: 1.5px solid var(--ink);
+  border-right: 1.5px solid var(--ink);
+  z-index: 4;
+}
+
+/* Selection scrub bars — visible by default since they're an in-flight tool. */
+.selection-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  cursor: ew-resize;
+  z-index: 5;
+}
+.selection-handle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2.5px;
+  height: 34px;
+  background: var(--ink);
+  border-radius: 1px;
+  opacity: 0.85;
+  transition: height 120ms ease, opacity 120ms ease;
+}
+.selection-handle:hover::before {
+  opacity: 1;
+  height: 46px;
+}
+.selection-handle-start { left: -7px; }
+.selection-handle-end   { right: -7px; }
+
+.playhead {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 2px;
+  background: var(--playhead);
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.18);
+}
+.playhead::before {
+  /* Top cap — makes the cursor read as a visible "marker" not a gridline. */
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -3px;
+  width: 8px;
+  height: 8px;
+  background: var(--playhead);
+  border-radius: 50%;
+}
+
+.ruler {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted-2);
+  letter-spacing: 0.04em;
+}
