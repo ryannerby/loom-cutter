@@ -35,3 +35,8 @@ projects/*/
 
 # Renders mirrored to user's Downloads — not tracked
 ~/Downloads/looms-cut/
+
+# TypeScript composite build artifacts
+*.tsbuildinfo
+ui/vite.config.d.ts
+ui/vite.config.js

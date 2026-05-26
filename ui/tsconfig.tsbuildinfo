@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/api.ts","./src/main.tsx","./src/types.ts","./src/components/dropzone.tsx","./src/components/importstatus.tsx","./src/components/settingsoverlay.tsx","./src/components/shortcutsoverlay.tsx","./src/components/transcript.tsx","./src/components/videoplayer.tsx","./src/components/waveform.tsx"],"version":"5.9.3"}
