@@ -28,6 +28,10 @@ function loadSettings(): RenderSettings {
         parsed.colorPreset === "warm" || parsed.colorPreset === "vivid"
           ? parsed.colorPreset
           : DEFAULT_SETTINGS.colorPreset,
+      snapToSilence:
+        typeof parsed.snapToSilence === "boolean"
+          ? parsed.snapToSilence
+          : DEFAULT_SETTINGS.snapToSilence,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -820,6 +824,7 @@ export default function App() {
           silences={state.silences}
           currentTime={currentTime}
           getCurrentTime={getCurrentTime}
+          snapEnabled={settings.snapToSilence}
           onRemoveCut={removeCut}
           onAdjustCut={adjustCut}
           onSeek={seekTo}

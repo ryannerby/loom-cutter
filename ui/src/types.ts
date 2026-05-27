@@ -82,9 +82,13 @@ export type ColorPreset = "natural" | "warm" | "vivid";
 export interface RenderSettings {
   voiceEnhance: boolean;
   colorPreset: ColorPreset;
+  // Editor preference, not a render-time setting, but lives in the same
+  // bag for localStorage simplicity.
+  snapToSilence: boolean;
 }
 
 export const DEFAULT_SETTINGS: RenderSettings = {
   voiceEnhance: true,
   colorPreset: "natural",
+  snapToSilence: true,
 };

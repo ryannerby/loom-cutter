@@ -16,6 +16,7 @@ interface Props {
   silences: Silence[];
   currentTime: number;
   getCurrentTime: () => number;
+  snapEnabled: boolean;
   onRemoveCut: (idx: number) => void;
   onAdjustCut: (idx: number, start: number, end: number) => void;
   onSeek: (t: number) => void;
@@ -142,6 +143,7 @@ export default function Waveform({
   silences,
   currentTime,
   getCurrentTime,
+  snapEnabled,
   onRemoveCut,
   onAdjustCut,
   onSeek,
@@ -298,19 +300,28 @@ export default function Waveform({
       const startClientX = e.clientX;
       const startTRaw = ((startClientX - rect.left) / rect.width) * duration;
       let didDrag = false;
-      // When zoomed in past 5×, the user is doing surgical work — disable
-      // snap so they get exact control instead of magnetic edges.
+      // Snap auto-disables when zoomed in surgically OR when user turns it
+      // off in settings. Alt-key live-overrides within a single drag.
       const visibleSec = zoom > 0 ? duration / zoom : duration;
-      const tol = visibleSec < SNAP_DISABLE_BELOW_VISIBLE_SEC ? 0 : SNAP_THRESHOLD_SEC;
+      const baseTol =
+        !snapEnabled || visibleSec < SNAP_DISABLE_BELOW_VISIBLE_SEC
+          ? 0
+          : SNAP_THRESHOLD_SEC;
+      const initialSnap = snapTime(
+        startTRaw,
+        silences,
+        e.altKey ? 0 : baseTol,
+        "start",
+      );
 
       const id = selIdRef.current++;
-      const initialSnap = snapTime(startTRaw, silences, tol, "start");
       setSelections((prev) => [...prev, { id, start: initialSnap, end: initialSnap }]);
 
       const onMove = (ev: MouseEvent) => {
         const dxPx = Math.abs(ev.clientX - startClientX);
         if (dxPx < DRAG_THRESHOLD_PX && !didDrag) return;
         didDrag = true;
+        const tol = ev.altKey ? 0 : baseTol;
         const rawT = ((ev.clientX - rect.left) / rect.width) * duration;
         const rawLo = Math.min(startTRaw, rawT);
         const rawHi = Math.max(startTRaw, rawT);
@@ -361,8 +372,12 @@ export default function Waveform({
       let lastX = e.clientX;
 
       const visibleSec = zoom > 0 ? duration / zoom : duration;
-      const tol = visibleSec < SNAP_DISABLE_BELOW_VISIBLE_SEC ? 0 : SNAP_THRESHOLD_SEC;
+      const baseTol =
+        !snapEnabled || visibleSec < SNAP_DISABLE_BELOW_VISIBLE_SEC
+          ? 0
+          : SNAP_THRESHOLD_SEC;
       const onMove = (ev: MouseEvent) => {
+        const tol = ev.altKey ? 0 : baseTol;
         const dxT = ((ev.clientX - lastX) / rect.width) * duration;
         const newVal = lastVal + dxT;
         lastX = ev.clientX;
@@ -381,13 +396,12 @@ export default function Waveform({
       const onUp = () => {
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
-        // After resizing, the selection may now overlap a sibling — merge.
         setSelections((prev) => mergeAllSelections(prev));
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
     },
-    [selections, duration, silences, zoom],
+    [selections, duration, silences, zoom, snapEnabled],
   );
 
   const startCutDrag = useCallback(
@@ -400,8 +414,12 @@ export default function Waveform({
       let lastVal = edge === "start" ? startCut.start : startCut.end;
       let lastX = e.clientX;
       const visibleSec = zoom > 0 ? duration / zoom : duration;
-      const tol = visibleSec < SNAP_DISABLE_BELOW_VISIBLE_SEC ? 0 : SNAP_THRESHOLD_SEC;
+      const baseTol =
+        !snapEnabled || visibleSec < SNAP_DISABLE_BELOW_VISIBLE_SEC
+          ? 0
+          : SNAP_THRESHOLD_SEC;
       const onMove = (ev: MouseEvent) => {
+        const tol = ev.altKey ? 0 : baseTol;
         const dxT = ((ev.clientX - lastX) / rect.width) * duration;
         const newVal = lastVal + dxT;
         lastX = ev.clientX;
@@ -422,7 +440,7 @@ export default function Waveform({
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
     },
-    [cuts, duration, onAdjustCut, silences, zoom],
+    [cuts, duration, onAdjustCut, silences, zoom, snapEnabled],
   );
 
   return (

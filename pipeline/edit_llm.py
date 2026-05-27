@@ -24,27 +24,49 @@ import anthropic
 
 MODEL = "claude-sonnet-4-6"
 
-SYSTEM_PROMPT = """You're editing a sales-pitch video transcript. Identify SEMANTIC cuts — repeated takes and abandoned sentences. Silence/pause cuts are handled by a separate audio-analysis pass; ignore them.
+SYSTEM_PROMPT = """You're editing a sales-pitch video transcript. Your job is to flag ONLY the OBVIOUS, UNAMBIGUOUS botched takes — places where the speaker clearly restarted the same sentence trying to nail delivery. Dead silence is handled by a separate pass; you only identify SEMANTIC restart patterns.
 
-Cut reasons:
-1. REPEATED_TAKE — the speaker says substantially the same phrase or sentence 2+ times trying to nail delivery. Keep the LAST clean attempt; cut every earlier attempt. A "repeated take" requires the same SEMANTIC CONTENT (same words or near-paraphrase), not just a similar topic.
-2. FALSE_START — an abandoned sentence the speaker bailed on mid-phrase ("I think we should— actually let me—"). Cut the abandoned fragment, not the recovery.
+CRITICAL: Over-cutting is far worse than under-cutting. A wrongly-cut sentence destroys coherence and the user has to manually restore. Under-cutting is fine — the user can always cut more themselves. **When in doubt, do NOT cut. Return [].**
 
-Aggressiveness:
-- Be AGGRESSIVE on repeated takes. If you see clear repetition of the opening line ("Hey my name's Ryan, I'm an automation specialist"), cut every attempt except the final clean one. Do not preserve earlier attempts out of caution.
-- Be CONSERVATIVE on what counts as semantically equivalent. Two sentences are "repeated" only if a listener would clearly hear "they said that twice." Different examples, expansions, or recoveries are NOT repeats.
-- Do NOT cut filler words (um, uh, like) in isolation. They only get cut as part of a repeated-take or false-start range.
+WHAT TO CUT:
 
-Input format: tab-separated words with [idx start end gap text]. "gap" is the silence before that word (helpful as a take-boundary signal — repeats usually follow a long gap).
+1. **REPEATED_TAKE** — the speaker says the SAME sentence verbatim (or near-verbatim) 2+ times in a row, separated by a clear restart. Keep the LAST attempt; cut earlier attempts.
 
-Output: STRICT JSON ONLY — an array, no prose, no markdown fences. Each element:
+   Example to cut:
+     "Hi I'm Ryan an automation specialist. Hi I'm Ryan, automation specialist.
+      Hi my name's Ryan, I'm an automation specialist based in Toronto."
+     → Cut the first two; keep the third.
+
+   The pattern: same opening words, same intent, clearly multiple takes.
+
+2. **FALSE_START** — speaker EXPLICITLY bails mid-sentence with a discourse marker like "actually," "let me restart," "wait," "no, " or trails off into "—" with a hard pivot. Cut only the abandoned fragment.
+
+   Example to cut:
+     "I think we should— actually let me start over. The way it works is…"
+     → Cut "I think we should— actually let me start over."
+
+WHAT IS NOT A REPEATED TAKE — DO NOT CUT THESE:
+
+- **Re-emphasis** ("This is critical. Like, really critical.") — KEEP
+- **Paraphrasing for clarity** ("Our goal is X. In other words, X again.") — KEEP
+- **Lists / parallel examples** ("First, X. Second, Y. Third, Z.") — KEEP
+- **Clarifications** ("We do A. Specifically, A means B.") — KEEP
+- **Reformulations** ("It's fast. It's REALLY fast.") — KEEP
+- **Related but distinct sentences** — KEEP
+- **Filler words in isolation** ("um", "uh", "like") — KEEP (a separate filler-removal pass handles these later if needed)
+- **Long pauses before continuing the SAME thought** — KEEP (the speaker is just thinking)
+
+If you cannot point at a SPECIFIC pattern of "the speaker is starting the same sentence over again," do not flag it.
+
+INPUT FORMAT: tab-separated words with [idx start end gap text]. "gap" is the silence (seconds) before each word — a large gap (>0.8s) is one weak signal of a take boundary, but a gap alone is NOT enough to justify a cut. The semantic restart pattern must also be present.
+
+OUTPUT: STRICT JSON ONLY — an array, no prose, no markdown fences. Each element:
 {"from": <int word index>, "to": <int word index>, "reason": "REPEATED_TAKE" | "FALSE_START", "note": "<one-line human explanation>"}
 
 Rules:
-- "from" and "to" are word indexes from the input table (inclusive on both ends).
-- The cut range MUST be within the indexes present in the input. Do not invent indexes.
+- "from" and "to" are inclusive word indexes from the input table. Both must exist.
 - Sort ascending by "from".
-- If you see nothing to cut, return []."""
+- If you see no clear, unambiguous patterns, return []. An empty result is the correct answer for a clean, single-take video."""
 
 
 def build_user_message(words: list[dict]) -> str:

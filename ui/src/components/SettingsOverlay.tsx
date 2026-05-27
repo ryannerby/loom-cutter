@@ -74,9 +74,26 @@ export default function SettingsOverlay({ open, settings, onChange, onClose }: P
           </div>
         </div>
 
+        <div className="settings-section">
+          <div className="settings-section-title">Editor</div>
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={settings.snapToSilence}
+              onChange={(e) => onChange({ ...settings, snapToSilence: e.target.checked })}
+            />
+            <span className="settings-toggle-label">
+              <span>{settings.snapToSilence ? "Snap drag-select edges to silence" : "Snap off — exact mouse position"}</span>
+              <span className="settings-toggle-desc">
+                When on, cut boundaries land on nearby quiet within 200ms.
+                Hold <kbd className="kbd-inline">⌥</kbd> while dragging to override momentarily either way.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div className="settings-footnote">
-          Settings persist across sessions. They apply at <strong>render time</strong> — no
-          re-render needed when you change them, just hit Render again.
+          Settings persist across sessions. Render settings apply at <strong>render time</strong> — no re-render needed when you change them, just hit Render again.
         </div>
       </div>
     </div>
