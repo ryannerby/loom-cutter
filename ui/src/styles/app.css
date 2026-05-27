@@ -262,6 +262,33 @@
 .empty-state-recent li {
   margin: 0;
 }
+.empty-state-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.empty-state-row .empty-state-project {
+  flex: 1;
+}
+.empty-state-delete {
+  font-family: var(--mono);
+  font-size: 14px;
+  background: transparent;
+  border: none;
+  color: var(--muted-2);
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+.empty-state-row:hover .empty-state-delete {
+  opacity: 1;
+}
+.empty-state-delete:hover {
+  color: var(--pale-red-ink);
+  background: var(--pale-red-bg);
+}
 .empty-state-project {
   display: block;
   width: 100%;

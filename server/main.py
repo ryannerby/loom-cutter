@@ -181,6 +181,21 @@ async def render_project(project_id: str, request: Request):
     return {"ok": True, "output": output.name, "size": os.path.getsize(output)}
 
 
+@app.delete("/api/projects/{project_id}")
+def delete_project(project_id: str):
+    """Hard-delete a project directory. The user explicitly confirmed via the
+    UI before this endpoint fires. Safety: ID is validated by _project_dir()
+    (no traversal), and we refuse to delete anything outside projects/."""
+    d = _project_dir(project_id)
+    # Defense in depth — the dir we're about to remove must be a direct child
+    # of PROJECTS_DIR.
+    if d.parent.resolve() != PROJECTS_DIR.resolve():
+        raise HTTPException(400, "refusing to delete: project outside projects/")
+    import shutil
+    shutil.rmtree(d)
+    return {"ok": True, "deleted": project_id}
+
+
 @app.post("/api/projects/{project_id}/cancel-render")
 def cancel_render(project_id: str):
     """Kill an in-flight render. Returns ok:false if nothing was running."""

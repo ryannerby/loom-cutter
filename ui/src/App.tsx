@@ -122,6 +122,30 @@ export default function App() {
     setProjectId(id);
   }, []);
 
+  const deleteProject = useCallback(
+    async (id: string) => {
+      if (!window.confirm(`Delete project "${id}"? This removes the source video and all cuts. This cannot be undone.`)) {
+        return;
+      }
+      try {
+        await api.deleteProject(id);
+        // Reload the list and, if the deleted one was active, drop to empty.
+        const projects = await api.listProjects();
+        setRecentProjects(projects.map((p) => ({ id: p.id })));
+        if (id === projectId) {
+          window.history.replaceState({}, "", window.location.pathname);
+          setProjectId(null);
+          setState(null);
+          setCuts([]);
+          setRenderedAt(0);
+        }
+      } catch (e) {
+        setError(String(e));
+      }
+    },
+    [projectId],
+  );
+
   // Initial project fetch + poll while the pipeline is processing.
   useEffect(() => {
     if (!projectId) return;
@@ -619,12 +643,20 @@ export default function App() {
                 <div className="empty-state-recent-title">Recent projects</div>
                 <ul>
                   {recentProjects.map((p) => (
-                    <li key={p.id}>
+                    <li key={p.id} className="empty-state-row">
                       <button
                         className="empty-state-project"
                         onClick={() => switchToProject(p.id)}
                       >
                         {p.id}
+                      </button>
+                      <button
+                        className="empty-state-delete"
+                        onClick={() => deleteProject(p.id)}
+                        title={`delete ${p.id}`}
+                        aria-label={`delete project ${p.id}`}
+                      >
+                        ×
                       </button>
                     </li>
                   ))}
@@ -669,6 +701,7 @@ export default function App() {
             activeId={projectId}
             onSelect={switchToProject}
             onNew={openEmptyState}
+            onDelete={deleteProject}
           />
           <ImportStatus
             projectId={projectId}

@@ -38,6 +38,9 @@ export const api = {
   cancelRender: (id: string) =>
     jsonFetch<{ ok: boolean }>(`/projects/${id}/cancel-render`, { method: "POST" }),
 
+  deleteProject: (id: string) =>
+    jsonFetch<{ ok: boolean }>(`/projects/${id}`, { method: "DELETE" }),
+
   importFile: async (file: File, onProgress?: (frac: number) => void) => {
     // Use XHR so we can report upload progress to the UI.
     return new Promise<{ id: string; size: number; status: string }>((resolve, reject) => {
