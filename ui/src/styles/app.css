@@ -3,8 +3,11 @@
 .window {
   position: relative;
   z-index: 1;
-  max-width: 980px;
-  margin: 36px auto 80px;
+  /* Span wide on big monitors, keep small breathing room on each side.
+     The .app window in Chrome --app mode can be ~1700px on a typical
+     desktop — old 980px max made it look like a postage stamp. */
+  max-width: min(1800px, calc(100vw - 32px));
+  margin: 16px auto 40px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
