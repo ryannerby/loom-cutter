@@ -221,19 +221,37 @@ export default function Waveform({
     [zoom, maxZoom],
   );
 
-  const onWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Wheel handler must be a NATIVE listener with passive:false — React's
+  // synthetic wheel handlers are passive-by-default, so preventDefault() is
+  // ignored and Chrome's built-in ⌘-scroll page-zoom fires anyway. Native
+  // listener properly suppresses the page zoom and lets us own ⌘+scroll.
+  const zoomRef = useRef(zoom);
+  const applyZoomRef = useRef(applyZoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  useEffect(() => {
+    applyZoomRef.current = applyZoom;
+  }, [applyZoom]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const onWheelNative = (e: WheelEvent) => {
       if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
+        e.stopPropagation();
         const delta = -e.deltaY * 0.025;
-        applyZoom(zoom * (1 + delta), e.clientX);
+        applyZoomRef.current(zoomRef.current * (1 + delta), e.clientX);
       } else if (e.shiftKey) {
         e.preventDefault();
-        hostRef.current!.scrollLeft += e.deltaY + e.deltaX;
+        e.stopPropagation();
+        host.scrollLeft += e.deltaY + e.deltaX;
       }
-    },
-    [zoom, applyZoom],
-  );
+    };
+    host.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => host.removeEventListener("wheel", onWheelNative);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -412,7 +430,7 @@ export default function Waveform({
       <div className="zoom-indicator">
         <span>{zoom.toFixed(1)}×</span>
       </div>
-      <div className="scroll-host" ref={hostRef} onWheel={onWheel}>
+      <div className="scroll-host" ref={hostRef}>
         <div className="zoom-inner" style={{ width: `${zoom * 100}%` }}>
           <div className="waveform-wrap" ref={waveRef} onMouseDown={onWaveMouseDown}>
             <svg

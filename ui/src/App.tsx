@@ -43,6 +43,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [recentProjects, setRecentProjects] = useState<{ id: string }[]>([]);
   const [copyFlash, setCopyFlash] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<RenderSettings>(() => loadSettings());
@@ -72,6 +73,17 @@ export default function App() {
     }
   }, [theme]);
 
+  // Globally suppress ⌘-wheel page zoom (Chrome's built-in). The waveform's
+  // own handler still owns ⌘-wheel as zoom. Without this, Chrome zooms both
+  // the page AND our waveform at the same time when the user scrolls.
+  useEffect(() => {
+    const preventPageZoom = (e: WheelEvent) => {
+      if (e.metaKey || e.ctrlKey) e.preventDefault();
+    };
+    document.addEventListener("wheel", preventPageZoom, { passive: false });
+    return () => document.removeEventListener("wheel", preventPageZoom);
+  }, []);
+
   // Undo / redo history. Stored in a ref so rapid edits don't trigger
   // a flood of re-renders. Snapshots are debounced 250ms so drag-handle
   // moves collapse into one history entry.
@@ -80,25 +92,33 @@ export default function App() {
 
   const videoHandleRef = useRef<VideoPlayerHandle>(null);
 
+  // On boot: only auto-load a project if explicitly requested via URL
+  // (?project=…). Otherwise stay on empty state with a recent-projects list
+  // + drag-drop zone. Avoids re-opening last session's edit on every launch.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("project");
     api
       .listProjects()
       .then((projects) => {
-        if (projects.length === 0) {
-          // No projects yet — show empty UI with drop-zone overlay only.
-          setError(null);
+        setRecentProjects(projects.map((p) => ({ id: p.id })));
+        if (requested && projects.some((p) => p.id === requested)) {
+          setProjectId(requested);
+        } else {
           setProjectId(null);
           setState(null);
-          return;
+          setError(null);
         }
-        const picked = requested && projects.some((p) => p.id === requested)
-          ? requested
-          : projects[0].id;
-        setProjectId(picked);
       })
       .catch((e) => setError(String(e)));
+  }, []);
+
+  const switchToProject = useCallback((id: string) => {
+    window.history.replaceState({}, "", `?project=${encodeURIComponent(id)}`);
+    setState(null);
+    setCuts([]);
+    setRenderedAt(0);
+    setProjectId(id);
   }, []);
 
   // Initial project fetch + poll while the pipeline is processing.
@@ -549,7 +569,8 @@ export default function App() {
     );
   }
 
-  // Empty state: no projects yet. Show drop-zone-only UI.
+  // Empty state: no project selected. Show drag-drop instructions + a list
+  // of recent projects so the user can resume one with a click.
   if (!projectId) {
     return (
       <>
@@ -559,8 +580,25 @@ export default function App() {
             <div className="titlebar-label">loom-cutter</div>
           </div>
           <div className="empty-state">
-            <h2>No projects yet</h2>
-            <p>Drag a Loom MP4 anywhere on this window to get started.</p>
+            <h2>Drop a Loom MP4 to start</h2>
+            <p>Drag anywhere on this window. The pipeline kicks off automatically.</p>
+            {recentProjects.length > 0 && (
+              <div className="empty-state-recent">
+                <div className="empty-state-recent-title">Recent projects</div>
+                <ul>
+                  {recentProjects.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        className="empty-state-project"
+                        onClick={() => switchToProject(p.id)}
+                      >
+                        {p.id}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
         <DropZone onFile={handleImport} />

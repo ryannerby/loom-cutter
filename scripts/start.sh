@@ -49,11 +49,26 @@ fi
 
 trap "echo; echo '[stop] killing children…'; kill $BACK_PID ${FRONT_PID:-} 2>/dev/null; exit 0" INT TERM
 
-# Wait for the relevant port to come up, then open the browser.
+# Open the UI in a clean app-style window. Chromium-based browsers in --app
+# mode strip the URL bar / tabs / extensions, so it feels native. Falls
+# back to the default browser if no Chromium browser is installed.
+open_app_window() {
+  local url="$1"
+  for app in "Google Chrome" "Arc" "Brave Browser" "Microsoft Edge" "Chromium"; do
+    if [ -d "/Applications/$app.app" ]; then
+      echo "[boot] up — opening in $app (app window)"
+      open -na "$app" --args --app="$url" --no-first-run --no-default-browser-check
+      return 0
+    fi
+  done
+  echo "[boot] up — opening default browser (no Chromium found)"
+  open "$url"
+}
+
+# Wait for the server to come up, then open the window.
 for i in $(seq 1 30); do
   if curl -s "$URL" > /dev/null 2>&1; then
-    echo "[boot] up — opening $URL"
-    open "$URL"
+    open_app_window "$URL"
     break
   fi
   sleep 0.5

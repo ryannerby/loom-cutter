@@ -1,22 +1,21 @@
 #!/bin/bash
-# Launcher inside LoomCutter.app — boots the production server, opens browser,
-# then sleeps so the Dock icon stays alive while the server is running.
-#
-# The .app must live in the project root (alongside scripts/, ui/, server/).
+# Launcher inside LoomCutter.app. macOS's app sandbox blocks the .app from
+# directly exec'ing scripts on external volumes (EPERM, "Operation not
+# permitted"). To work around it without requiring fancy code signing, we
+# delegate to Terminal via /usr/bin/open — Terminal has the file-system
+# permissions it needs to run our start.sh.
 
 set -e
 
-# Resolve the project root: .app is at <root>/LoomCutter.app, this script at
-# <root>/LoomCutter.app/Contents/MacOS/LoomCutter, so the root is three levels up.
 HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
-cd "$HERE"
 
-# Logs go to ~/Library/Logs/LoomCutter/ so they survive crashes.
 LOG_DIR="$HOME/Library/Logs/LoomCutter"
 mkdir -p "$LOG_DIR"
 exec >> "$LOG_DIR/launch.log" 2>&1
 
 echo "==== $(date) launching from $HERE ===="
 
-# Reuse the existing start script in --prod mode.
-exec "$HERE/scripts/start.sh" --prod
+# `open` is a system binary at /usr/bin/open — runs outside our sandbox and
+# launches the .command in Terminal.app, which has Full Disk Access by
+# default on most user setups.
+exec /usr/bin/open "$HERE/Launch Loom Cutter.command"
