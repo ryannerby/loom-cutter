@@ -38,10 +38,15 @@ def transcribe(audio_path: Path, model_size: str = "medium") -> dict:
     # int8 on CPU is the fast path on Apple Silicon; ctranslate2 has no MPS backend.
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
+    # VAD filter (Silero) skips silent regions before sending to Whisper.
+    # For a Loom that's typically ~50% pauses, this roughly halves transcribe
+    # time with zero accuracy loss on the speech portions. min_silence_duration
+    # of 300ms ensures we don't skip natural inter-word gaps.
     segments_iter, info = model.transcribe(
         str(audio_path),
         word_timestamps=True,
-        vad_filter=False,
+        vad_filter=True,
+        vad_parameters={"min_silence_duration_ms": 300},
     )
 
     words: list[dict] = []

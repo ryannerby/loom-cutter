@@ -34,13 +34,15 @@ export default function DropZone({ onFile }: Props) {
     (e: DragEvent) => {
       stop(e);
       setDragging(false);
-      const file = e.dataTransfer?.files?.[0];
-      if (!file) return;
-      if (!/\.(mp4|mov|m4v|webm)$/i.test(file.name)) {
-        alert("Expected an MP4 / MOV / M4V / WebM file.");
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      const videos = files.filter((f) => /\.(mp4|mov|m4v|webm)$/i.test(f.name));
+      if (videos.length === 0) {
+        alert("Expected MP4 / MOV / M4V / WebM files.");
         return;
       }
-      onFile(file);
+      // Kick off each import — they run as parallel daemon threads on the
+      // backend, so batch-dropping 5 Looms starts 5 simultaneous pipelines.
+      videos.forEach((f) => onFile(f));
     },
     [onFile],
   );

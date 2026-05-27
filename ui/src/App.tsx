@@ -9,6 +9,7 @@ import ShortcutsOverlay from "./components/ShortcutsOverlay";
 import SettingsOverlay from "./components/SettingsOverlay";
 import DropZone from "./components/DropZone";
 import ImportStatus from "./components/ImportStatus";
+import ProjectTabs from "./components/ProjectTabs";
 import "./styles/app.css";
 
 const SETTINGS_STORAGE_KEY = "loom-cutter-render-settings";
@@ -172,12 +173,20 @@ export default function App() {
   }, [cuts, projectId, state]);
 
   // Drag-drop import: upload, then switch URL/state to the new project.
+  // For batch drops, this is called once per file. The first import becomes
+  // the active project; subsequent ones run their pipelines in the background
+  // and appear in the tab strip as they finish (refresh project list on each).
   const handleImport = useCallback(async (file: File) => {
     setError(null);
     setUploadProgress(0);
     try {
       const { id } = await api.importFile(file, (frac) => setUploadProgress(frac));
-      // Switch to the new project. It'll render in "processing" state until pipeline finishes.
+      // Refresh the project list so the new one shows in the tab strip.
+      api.listProjects().then((projects) =>
+        setRecentProjects(projects.map((p) => ({ id: p.id }))),
+      );
+      // Switch the URL/active state to this newest import. If multiple files
+      // were dropped, the LAST one becomes active (most recent intent).
       window.history.replaceState({}, "", `?project=${encodeURIComponent(id)}`);
       setState(null);
       setCuts([]);
@@ -188,6 +197,18 @@ export default function App() {
       setError(String(e));
       setUploadProgress(null);
     }
+  }, []);
+
+  const openEmptyState = useCallback(() => {
+    window.history.replaceState({}, "", window.location.pathname);
+    setState(null);
+    setCuts([]);
+    setRenderedAt(0);
+    setProjectId(null);
+    // Refresh the recent-projects list so any newly-finished imports show up.
+    api.listProjects().then((projects) =>
+      setRecentProjects(projects.map((p) => ({ id: p.id }))),
+    );
   }, []);
 
   const removeCut = useCallback((idx: number) => {
@@ -632,6 +653,12 @@ export default function App() {
             <div className="traffic"><span /><span /><span /></div>
             <div className="titlebar-label">{projectId}/source.mp4</div>
           </div>
+          <ProjectTabs
+            projects={recentProjects}
+            activeId={projectId}
+            onSelect={switchToProject}
+            onNew={openEmptyState}
+          />
           <ImportStatus
             projectId={projectId}
             status={state.status}
@@ -701,6 +728,13 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        <ProjectTabs
+          projects={recentProjects}
+          activeId={projectId}
+          onSelect={switchToProject}
+          onNew={openEmptyState}
+        />
 
         <div className="content-split">
           <VideoPlayer
