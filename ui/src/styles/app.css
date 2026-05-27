@@ -166,6 +166,42 @@
   color: var(--muted);
 }
 
+/* Top half of the main view: video on the left, transcript on the right.
+   Waveform spans full width below this. Stacks vertically on narrow viewports. */
+.content-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+}
+.content-split > .stage {
+  padding: 28px 24px;
+}
+.content-split > .transcript-section {
+  border-left: 1px solid var(--border);
+  border-top: none;
+  padding: 28px 28px 28px;
+  max-height: 56vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.content-split > .transcript-section::-webkit-scrollbar { width: 6px; }
+.content-split > .transcript-section::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+@media (max-width: 1000px) {
+  .content-split {
+    grid-template-columns: 1fr;
+  }
+  .content-split > .transcript-section {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: none;
+  }
+}
+
 .empty-state-recent {
   margin-top: 48px;
   display: inline-block;

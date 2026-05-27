@@ -702,15 +702,27 @@ export default function App() {
           </div>
         </div>
 
-        <VideoPlayer
-          ref={videoHandleRef}
-          projectId={projectId}
-          cuts={activeCuts}
-          currentTime={currentTime}
-          onTimeChange={setCurrentTime}
-          renderedAt={renderedAt}
-          showOutput={renderedAt > 0}
-        />
+        <div className="content-split">
+          <VideoPlayer
+            ref={videoHandleRef}
+            projectId={projectId}
+            cuts={activeCuts}
+            currentTime={currentTime}
+            onTimeChange={setCurrentTime}
+            renderedAt={renderedAt}
+            showOutput={renderedAt > 0}
+          />
+
+          <Transcript
+            words={state.words}
+            cuts={cuts}
+            currentTime={currentTime}
+            onSeek={seekTo}
+            onAddCutRange={addCutRange}
+            onRemoveCut={removeCut}
+            onUncutRange={uncutWordRange}
+          />
+        </div>
 
         <Waveform
           duration={state.duration}
@@ -723,16 +735,6 @@ export default function App() {
           onAdjustCut={adjustCut}
           onSeek={seekTo}
           onAddRange={addCutFromTime}
-        />
-
-        <Transcript
-          words={state.words}
-          cuts={cuts}
-          currentTime={currentTime}
-          onSeek={seekTo}
-          onAddCutRange={addCutRange}
-          onRemoveCut={removeCut}
-          onUncutRange={uncutWordRange}
         />
       </div>
 
