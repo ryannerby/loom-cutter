@@ -28,8 +28,13 @@ def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def write_status(project_dir: Path, stage: str, error: str | None = None) -> None:
-    status = {
+def write_status(
+    project_dir: Path,
+    stage: str,
+    error: str | None = None,
+    audio_duration: float | None = None,
+) -> None:
+    status: dict = {
         "stage": stage,
         "error": error,
         "stage_at": _utcnow(),
@@ -38,11 +43,16 @@ def write_status(project_dir: Path, stage: str, error: str | None = None) -> Non
     if existing.exists():
         try:
             prior = json.loads(existing.read_text())
-            status.setdefault("started_at", prior.get("started_at", status["stage_at"]))
+            status["started_at"] = prior.get("started_at", status["stage_at"])
+            # Preserve audio_duration once it's been measured.
+            if "audio_duration" in prior and audio_duration is None:
+                status["audio_duration"] = prior["audio_duration"]
         except Exception:
             status["started_at"] = status["stage_at"]
     else:
         status["started_at"] = status["stage_at"]
+    if audio_duration is not None:
+        status["audio_duration"] = audio_duration
     existing.write_text(json.dumps(status, indent=2))
 
 
@@ -94,7 +104,14 @@ def _run_pipeline(source_path: Path) -> None:
     )
 
     try:
-        write_status(project_dir, "transcribing")
+        # Probe the source up-front so the UI can show an ETA from second one.
+        audio_duration: float | None = None
+        try:
+            from pipeline.render import ffprobe_duration
+            audio_duration = ffprobe_duration(source_path)
+        except Exception:
+            pass
+        write_status(project_dir, "transcribing", audio_duration=audio_duration)
         transcribe.run(source_path, "medium")
 
         write_status(project_dir, "extracting_peaks")

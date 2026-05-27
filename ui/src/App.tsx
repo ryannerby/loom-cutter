@@ -124,7 +124,7 @@ export default function App() {
 
   const deleteProject = useCallback(
     async (id: string) => {
-      if (!window.confirm(`Delete project "${id}"? This removes the source video and all cuts. This cannot be undone.`)) {
+      if (!window.confirm(`Archive "${id}"? It will be hidden from the project list. The data stays on disk under projects/.archived/ — you can restore it by moving the folder back if you change your mind.`)) {
         return;
       }
       try {

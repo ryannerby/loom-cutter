@@ -182,18 +182,22 @@ async def render_project(project_id: str, request: Request):
 
 
 @app.delete("/api/projects/{project_id}")
-def delete_project(project_id: str):
-    """Hard-delete a project directory. The user explicitly confirmed via the
-    UI before this endpoint fires. Safety: ID is validated by _project_dir()
-    (no traversal), and we refuse to delete anything outside projects/."""
+def archive_project(project_id: str):
+    """Archive a project — moves the directory into projects/.archived/ so it
+    disappears from the UI but the data is fully preserved on disk. Restorable
+    by manually moving the folder back. Safer than hard delete; no data lost."""
     d = _project_dir(project_id)
-    # Defense in depth — the dir we're about to remove must be a direct child
-    # of PROJECTS_DIR.
     if d.parent.resolve() != PROJECTS_DIR.resolve():
-        raise HTTPException(400, "refusing to delete: project outside projects/")
+        raise HTTPException(400, "refusing to archive: project outside projects/")
+    archive_dir = PROJECTS_DIR / ".archived"
+    archive_dir.mkdir(exist_ok=True)
+    target = archive_dir / project_id
+    if target.exists():
+        # Avoid collisions if a project with this name was archived before.
+        target = archive_dir / f"{project_id}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     import shutil
-    shutil.rmtree(d)
-    return {"ok": True, "deleted": project_id}
+    shutil.move(str(d), str(target))
+    return {"ok": True, "archived": project_id, "moved_to": str(target.relative_to(ROOT))}
 
 
 @app.post("/api/projects/{project_id}/cancel-render")

@@ -54,6 +54,7 @@ export interface ProjectStatus {
   error: string | null;
   started_at?: string;
   stage_at?: string;
+  audio_duration?: number; // seconds — used by UI for ETA / progress estimation
 }
 
 export interface ProjectState {
