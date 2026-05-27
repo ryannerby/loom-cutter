@@ -35,6 +35,9 @@ export const api = {
   revealOutput: (id: string) =>
     jsonFetch<{ ok: boolean; path: string }>(`/projects/${id}/reveal`, { method: "POST" }),
 
+  cancelRender: (id: string) =>
+    jsonFetch<{ ok: boolean }>(`/projects/${id}/cancel-render`, { method: "POST" }),
+
   importFile: async (file: File, onProgress?: (frac: number) => void) => {
     // Use XHR so we can report upload progress to the UI.
     return new Promise<{ id: string; size: number; status: string }>((resolve, reject) => {

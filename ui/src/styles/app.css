@@ -112,6 +112,14 @@
   gap: 8px;
 }
 .btn-render:hover { background: var(--ink-soft); }
+.btn-render-cancel {
+  background: var(--pale-red-ink);
+  border-color: var(--pale-red-ink);
+}
+.btn-render-cancel:hover {
+  background: #b83d3a;
+  border-color: #b83d3a;
+}
 .btn-render:active { transform: scale(0.98); }
 .btn-render:disabled {
   opacity: 0.55;

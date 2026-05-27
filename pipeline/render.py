@@ -75,6 +75,26 @@ AUDIO_FADE = 0.05  # seconds — fade-in/out applied to each kept segment to kil
 #   8. exciter             — subtle harmonic saturation, the "thick voice" trick
 #   9. limiter             — brick wall at -0.45dBFS, kills inter-sample peaks
 #  10. loudnorm -14 LUFS   — YouTube / Spotify / podcast LOUD target (was -16 broadcast)
+# Module-level registry of in-flight ffmpeg processes by project id.
+# Lets the server's /cancel-render endpoint kill an active render
+# without complex IPC. Keys are project directory names.
+_RUNNING: dict[str, subprocess.Popen] = {}
+
+
+def cancel(project_id: str) -> bool:
+    """Terminate an in-flight render for the given project. Returns True if
+    a process was actually killed."""
+    proc = _RUNNING.get(project_id)
+    if proc is None or proc.poll() is not None:
+        return False
+    proc.terminate()  # SIGTERM first (lets ffmpeg flush)
+    try:
+        proc.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        proc.kill()  # SIGKILL if it doesn't go quietly
+    return True
+
+
 VOICE_ENHANCE_CHAIN = (
     "highpass=f=80,"
     "equalizer=f=180:t=q:w=1.0:g=-1.5,"
@@ -185,11 +205,20 @@ def run(source_path: Path, cuts_path: Path, out_path: Path | None = None,
         str(out_path),
     ]
 
+    project_id = source_path.parent.name
     t0 = time.time()
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        sys.stderr.write(result.stderr[-3000:])
-        raise RuntimeError(f"ffmpeg failed (exit {result.returncode})")
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    _RUNNING[project_id] = proc
+    try:
+        _, stderr = proc.communicate()
+    finally:
+        _RUNNING.pop(project_id, None)
+    if proc.returncode != 0:
+        # Negative returncode on POSIX means killed by signal — that's a cancel.
+        if proc.returncode < 0:
+            raise RuntimeError(f"render cancelled (signal {-proc.returncode})")
+        sys.stderr.write((stderr or "")[-3000:])
+        raise RuntimeError(f"ffmpeg failed (exit {proc.returncode})")
     print(f"         {time.time() - t0:.1f}s → {out_path}")
 
     # Mirror the render into ~/Downloads/looms-cut/<project-id>.mp4 so the

@@ -1,11 +1,25 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Warm cream rounded-square background. -->
-  <rect width="1024" height="1024" rx="220" fill="#FBFBFA"/>
+  <defs>
+    <!-- Warm-charcoal gradient — darker bottom for that subtle "weight" most
+         modern Dock icons have. Sits naturally between Slack/Chrome/Notes. -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A332B"/>
+      <stop offset="1" stop-color="#1C1714"/>
+    </linearGradient>
+    <!-- Soft inner glow to add depth to the play triangle. -->
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#F8F3E6"/>
+      <stop offset="1" stop-color="#EBE3D0"/>
+    </radialGradient>
+  </defs>
 
-  <!-- Play triangle in deep ink. Pointed right. -->
-  <path d="M 340 290 L 340 734 L 736 512 Z" fill="#2F3437"/>
+  <!-- Backdrop -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
 
-  <!-- Pale-red vertical cut line, perpendicular through the triangle.
-       The single color accent + the only non-ink shape. -->
-  <rect x="498" y="340" width="28" height="344" rx="14" fill="#9F2F2D"/>
+  <!-- Play triangle in warm cream, pointed right -->
+  <path d="M 340 290 L 340 734 L 736 512 Z" fill="url(#glow)"/>
+
+  <!-- Pale-red cut line — single accent. Slightly more saturated than the
+       pale-red-ink used elsewhere so it stays vivid at Dock size. -->
+  <rect x="498" y="340" width="28" height="344" rx="14" fill="#E04848"/>
 </svg>

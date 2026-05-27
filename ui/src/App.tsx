@@ -443,6 +443,17 @@ export default function App() {
     }
   }, [projectId]);
 
+  const handleCancelRender = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      await api.cancelRender(projectId);
+      // handleRender's catch block will surface the cancellation error and
+      // flip `rendering` back to false; nothing else to do here.
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [projectId]);
+
   const activeCuts = useMemo(() => cuts.filter((c) => c.active ?? true), [cuts]);
 
   // Build the post-cut transcript — the words that actually play in the
@@ -720,12 +731,22 @@ export default function App() {
             >
               ?
             </button>
-            <button className="btn-render" onClick={handleRender} disabled={rendering}>
-              {rendering ? "Rendering…" : "Render"}
-              <svg viewBox="0 0 16 16" fill="currentColor">
-                <path d="M5 3l7 5-7 5V3z" />
-              </svg>
-            </button>
+            {rendering ? (
+              <button
+                className="btn-render btn-render-cancel"
+                onClick={handleCancelRender}
+                title="cancel the in-flight render"
+              >
+                Cancel render
+              </button>
+            ) : (
+              <button className="btn-render" onClick={handleRender}>
+                Render
+                <svg viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M5 3l7 5-7 5V3z" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 

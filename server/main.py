@@ -181,6 +181,14 @@ async def render_project(project_id: str, request: Request):
     return {"ok": True, "output": output.name, "size": os.path.getsize(output)}
 
 
+@app.post("/api/projects/{project_id}/cancel-render")
+def cancel_render(project_id: str):
+    """Kill an in-flight render. Returns ok:false if nothing was running."""
+    _ = _project_dir(project_id)
+    ok = render_pipeline.cancel(project_id)
+    return {"ok": ok}
+
+
 @app.post("/api/projects/{project_id}/reveal")
 def reveal_output(project_id: str):
     """Open Finder with the rendered output selected, ready to drag into Loom."""
