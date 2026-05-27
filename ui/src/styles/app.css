@@ -173,8 +173,33 @@
   grid-template-columns: 1fr 1fr;
   border-bottom: 1px solid var(--border);
 }
+/* Split-layout video column. The wrap fills the column edge-to-edge so
+   there's no black chrome around the video — any letterboxing (portrait
+   recording, ultrawide, etc.) shows on the video element's intrinsic
+   background. Override the original .stage and .video-wrap defaults that
+   were tuned for the old centered-narrow layout. */
 .content-split > .stage {
-  padding: 28px 24px;
+  padding: 24px;
+  text-align: initial;
+  display: block;
+}
+.content-split > .stage .video-wrap {
+  display: block !important;
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  line-height: 0;
+}
+.content-split > .stage .video-wrap video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 56vh;
+  background: #1a1a18;
 }
 .content-split > .transcript-section {
   border-left: 1px solid var(--border);
