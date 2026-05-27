@@ -788,6 +788,7 @@ export default function App() {
           activeId={projectId}
           onSelect={switchToProject}
           onNew={openEmptyState}
+          onDelete={deleteProject}
         />
 
         <div className="content-split">
