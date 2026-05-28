@@ -125,15 +125,36 @@ def build_filter_complex(
     fade: float = AUDIO_FADE,
     enhance: bool = True,
     color_preset: str = "natural",
+    audio_delay_ms: int = 0,
 ) -> str:
-    """Filter graph: trim+concat video (+color), trim+fade+concat (+enhance) audio."""
+    """Filter graph: trim+concat video (+color), trim+fade+concat (+enhance) audio.
+
+    audio_delay_ms: positive delays audio (pads with silence at the start),
+    negative advances audio (trims front). Used to compensate for capture-card
+    A/V drift before any per-segment cuts happen.
+    """
     parts = []
+    n = len(keeps)
+
+    # Pre-shift the source audio if a delay is set, then split into N copies
+    # so each per-segment atrim has its own stream to consume.
+    if audio_delay_ms != 0 and n > 0:
+        if audio_delay_ms > 0:
+            shift = f"adelay={audio_delay_ms}|{audio_delay_ms}"
+        else:
+            shift = f"atrim=start={(-audio_delay_ms) / 1000:.3f},asetpts=PTS-STARTPTS"
+        split_labels = "".join(f"[sa{i}]" for i in range(n))
+        parts.append(f"[0:a]{shift},asplit={n}{split_labels}")
+        audio_in = [f"[sa{i}]" for i in range(n)]
+    else:
+        audio_in = ["[0:a]"] * n
+
     for i, (s, e) in enumerate(keeps):
         seg_dur = e - s
         f = min(fade, seg_dur / 4)
         parts.append(f"[0:v]trim=start={s:.3f}:end={e:.3f},setpts=PTS-STARTPTS[v{i}]")
         parts.append(
-            f"[0:a]atrim=start={s:.3f}:end={e:.3f},asetpts=PTS-STARTPTS,"
+            f"{audio_in[i]}atrim=start={s:.3f}:end={e:.3f},asetpts=PTS-STARTPTS,"
             f"afade=t=in:st=0:d={f:.3f},"
             f"afade=t=out:st={seg_dur - f:.3f}:d={f:.3f}[a{i}]"
         )
@@ -155,7 +176,8 @@ def build_filter_complex(
 
 
 def run(source_path: Path, cuts_path: Path, out_path: Path | None = None,
-        enhance_voice: bool = True, color_preset: str = "natural") -> Path:
+        enhance_voice: bool = True, color_preset: str = "natural",
+        audio_delay_ms: int = 0) -> Path:
     project_dir = source_path.parent
     if out_path is None:
         out_path = project_dir / "output.mp4"
@@ -181,8 +203,13 @@ def run(source_path: Path, cuts_path: Path, out_path: Path | None = None,
         sys.exit("error: no keep-segments — everything was cut")
 
     filter_complex = build_filter_complex(
-        keeps, enhance=enhance_voice, color_preset=color_preset
+        keeps,
+        enhance=enhance_voice,
+        color_preset=color_preset,
+        audio_delay_ms=audio_delay_ms,
     )
+    if audio_delay_ms != 0:
+        print(f"         audio-delay: {audio_delay_ms:+d}ms")
     if enhance_voice:
         print("         voice-enhance: highpass + compressor + de-esser + EQ + exciter + limiter + loudnorm")
     if color_preset != "natural":

@@ -32,6 +32,10 @@ function loadSettings(): RenderSettings {
         typeof parsed.snapToSilence === "boolean"
           ? parsed.snapToSilence
           : DEFAULT_SETTINGS.snapToSilence,
+      audioDelayMs:
+        typeof parsed.audioDelayMs === "number" && isFinite(parsed.audioDelayMs)
+          ? Math.max(-500, Math.min(500, parsed.audioDelayMs))
+          : DEFAULT_SETTINGS.audioDelayMs,
     };
   } catch {
     return DEFAULT_SETTINGS;

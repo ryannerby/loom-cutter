@@ -165,6 +165,7 @@ async def render_project(project_id: str, request: Request):
     # Optional render settings posted from the UI's settings overlay.
     voice_enhance = True
     color_preset = "natural"
+    audio_delay_ms = 0
     body = await request.body()
     if body:
         try:
@@ -173,10 +174,19 @@ async def render_project(project_id: str, request: Request):
             requested = data.get("colorPreset", "natural")
             if requested in ("natural", "warm", "vivid"):
                 color_preset = requested
+            try:
+                audio_delay_ms = int(data.get("audioDelayMs", 0))
+                audio_delay_ms = max(-500, min(500, audio_delay_ms))
+            except (TypeError, ValueError):
+                pass
         except Exception:
-            pass  # malformed body → defaults
+            pass
     output = render_pipeline.run(
-        source, cuts, enhance_voice=voice_enhance, color_preset=color_preset
+        source,
+        cuts,
+        enhance_voice=voice_enhance,
+        color_preset=color_preset,
+        audio_delay_ms=audio_delay_ms,
     )
     return {"ok": True, "output": output.name, "size": os.path.getsize(output)}
 

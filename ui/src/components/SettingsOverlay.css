@@ -126,6 +126,48 @@
 }
 .settings-footnote strong { color: var(--ink-soft); }
 
+.settings-numeric {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+.settings-numeric > label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.settings-numeric-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.settings-numeric-control input {
+  width: 70px;
+  padding: 6px 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: right;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--ink);
+}
+.settings-numeric-control input:focus {
+  outline: none;
+  border-color: var(--ink-soft);
+}
+.settings-numeric-unit {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted-2);
+}
+
 .kbd-inline {
   font-family: var(--mono);
   font-size: 10px;

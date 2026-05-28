@@ -75,6 +75,38 @@ export default function SettingsOverlay({ open, settings, onChange, onClose }: P
         </div>
 
         <div className="settings-section">
+          <div className="settings-section-title">Audio sync</div>
+          <div className="settings-numeric">
+            <label htmlFor="audioDelayMs">
+              <span>Audio delay</span>
+              <span className="settings-toggle-desc">
+                Positive = delay audio (use when audio plays ahead of video,
+                typical for capture-card setups). Negative = advance audio.
+                Typical range: <kbd className="kbd-inline">+80</kbd> to{" "}
+                <kbd className="kbd-inline">+200</kbd> ms.
+              </span>
+            </label>
+            <div className="settings-numeric-control">
+              <input
+                id="audioDelayMs"
+                type="number"
+                step={10}
+                min={-500}
+                max={500}
+                value={settings.audioDelayMs}
+                onChange={(e) =>
+                  onChange({
+                    ...settings,
+                    audioDelayMs: Math.max(-500, Math.min(500, Number(e.target.value) || 0)),
+                  })
+                }
+              />
+              <span className="settings-numeric-unit">ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-section">
           <div className="settings-section-title">Editor</div>
           <label className="settings-toggle">
             <input

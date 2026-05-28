@@ -172,7 +172,7 @@ export default function Transcript({
               onMouseDown={(e) => onWordMouseDown(e, idx, w)}
               onMouseEnter={() => onWordMouseEnter(idx)}
               onContextMenu={(e) => onWordContext(e, idx, meta.cutIdx)}
-              title={`${w.start.toFixed(2)}s · click=seek · drag=select · right-click=remove`}
+              title={`${w.start.toFixed(2)}s`}
             >
               {w.word}
             </span>

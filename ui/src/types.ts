@@ -85,10 +85,15 @@ export interface RenderSettings {
   // Editor preference, not a render-time setting, but lives in the same
   // bag for localStorage simplicity.
   snapToSilence: boolean;
+  // Audio sync offset in milliseconds. Positive delays audio (use when
+  // audio plays ahead of video — typical capture-card setups). Negative
+  // advances audio (use when audio is behind).
+  audioDelayMs: number;
 }
 
 export const DEFAULT_SETTINGS: RenderSettings = {
   voiceEnhance: true,
   colorPreset: "natural",
   snapToSilence: true,
+  audioDelayMs: 0,
 };
