@@ -24,49 +24,100 @@ import anthropic
 
 MODEL = "claude-sonnet-4-6"
 
-SYSTEM_PROMPT = """You're editing a sales-pitch video transcript. Your job is to flag ONLY the OBVIOUS, UNAMBIGUOUS botched takes — places where the speaker clearly restarted the same sentence trying to nail delivery. Dead silence is handled by a separate pass; you only identify SEMANTIC restart patterns.
+SYSTEM_PROMPT = """You edit a sales-pitch video transcript. Flag ONLY clear SENTENCE-LEVEL restart patterns — where the speaker began a thought, bailed, and started the SAME thought over from the beginning. Dead silence is handled by a separate pass.
 
-CRITICAL: Over-cutting is far worse than under-cutting. A wrongly-cut sentence destroys coherence and the user has to manually restore. Under-cutting is fine — the user can always cut more themselves. **When in doubt, do NOT cut. Return [].**
+CRITICAL: Over-cutting is far worse than under-cutting. When in doubt, do NOT cut. Return [].
 
-WHAT TO CUT:
+THE CORE TEST
+=============
+Did the speaker say the SAME OPENING PHRASE (≥5 words, same intent) TWO OR MORE TIMES in a row?
+  YES → cut earlier attempt(s), keep the last/cleanest version → REPEATED_TAKE
+  NO  → KEEP
 
-1. **REPEATED_TAKE** — the speaker says the SAME sentence verbatim (or near-verbatim) 2+ times in a row, separated by a clear restart. Keep the LAST attempt; cut earlier attempts.
+Did the speaker hard-pivot with "actually", "let me restart", or "—" → completely different direction?
+  YES → cut the abandoned fragment → FALSE_START
+  NO  → KEEP
 
-   Example to cut:
-     "Hi I'm Ryan an automation specialist. Hi I'm Ryan, automation specialist.
-      Hi my name's Ryan, I'm an automation specialist based in Toronto."
-     → Cut the first two; keep the third.
+Anything else → KEEP.
 
-   The pattern: same opening words, same intent, clearly multiple takes.
+WHAT TO CUT (with real examples from training data)
+===================================================
 
-2. **FALSE_START** — speaker EXPLICITLY bails mid-sentence with a discourse marker like "actually," "let me restart," "wait," "no, " or trails off into "—" with a hard pivot. Cut only the abandoned fragment.
+REPEATED_TAKE — sentence-level restart:
+  Raw:  "Hey, my name's Ryan, I'm an automation specialist, and I came across your job
+         looking for some agentic solutions on make.com, specifically incorporating-
+         Hey, my name's Ryan, I'm an automation specialist, and I came across your job
+         looking for agentic solutions on make.com, integrating Q-U-O with your CRM."
+  Cut:  the entire first attempt — from "Hey" through "incorporating-"
+  Why:  Speaker said "Hey, my name's Ryan, I'm an automation specialist…" then RESTARTED
+        the same opening. Same 10+ opening words. Keep the cleaner second version.
 
-   Example to cut:
-     "I think we should— actually let me start over. The way it works is…"
-     → Cut "I think we should— actually let me start over."
+  Another:
+  Raw:  "I had to apply because I actually just delivered a full build-out using-
+         a full build-out on- a full build-out on make.com using AI."
+  Cut:  "a full build-out using- a full build-out on-"
+  Why:  Three attempts at "a full build-out…". Keep the last.
 
-WHAT IS NOT A REPEATED TAKE — DO NOT CUT THESE:
+  Another:
+  Raw:  "So this first one was a TikTok. So this first one was a completely-
+         So this first one- this first one was a completely autonomous TikTok…"
+  Cut:  Everything from "So this first one was a TikTok" through "So this first one-".
+  Why:  Multiple full-sentence restarts of the same opening.
 
-- **Re-emphasis** ("This is critical. Like, really critical.") — KEEP
-- **Paraphrasing for clarity** ("Our goal is X. In other words, X again.") — KEEP
-- **Lists / parallel examples** ("First, X. Second, Y. Third, Z.") — KEEP
-- **Clarifications** ("We do A. Specifically, A means B.") — KEEP
-- **Reformulations** ("It's fast. It's REALLY fast.") — KEEP
-- **Related but distinct sentences** — KEEP
-- **Filler words in isolation** ("um", "uh", "like") — KEEP (a separate filler-removal pass handles these later if needed)
-- **Long pauses before continuing the SAME thought** — KEEP (the speaker is just thinking)
+FALSE_START — explicit bail:
+  Raw:  "I also went ahead and checked out. I also went ahead and verified the
+         capabilities of the QUO API."
+  Cut:  "I also went ahead and checked out."
+  Why:  "checked out" was the wrong word choice; speaker explicitly restarted the
+        sentence with the right verb. Keep the corrected version.
 
-If you cannot point at a SPECIFIC pattern of "the speaker is starting the same sentence over again," do not flag it.
+WHAT TO KEEP — do NOT flag these (real examples)
+================================================
+  "this flow was triggered by a, this flow was triggered by a webhook"
+     → KEEP. Mid-sentence wrap-back to grab the same word; not a sentence restart.
 
-INPUT FORMAT: tab-separated words with [idx start end gap text]. "gap" is the silence (seconds) before each word — a large gap (>0.8s) is one weak signal of a take boundary, but a gap alone is NOT enough to justify a cut. The semantic restart pattern must also be present.
+  "as well as as well as some other automation workflows"
+     → KEEP. Word-level stutter; the broader sentence is moving forward.
 
-OUTPUT: STRICT JSON ONLY — an array, no prose, no markdown fences. Each element:
+  "what you're, what exactly, just depends on what exactly you're looking for"
+     → KEEP all of it. Self-correcting WITHIN one thought.
+
+  "Shoot me a message. Shoot me a message."
+     → KEEP both. Deliberate emphatic repetition.
+
+  "I I also went ahead and verified"
+     → KEEP. Micro-stutter on "I"; not a sentence restart.
+
+  "This is critical. Like, really critical."
+     → KEEP. Re-emphasis.
+
+  "First, X. Second, Y. Third, Z."
+     → KEEP. Parallel structure / list.
+
+  "Q- integrating Q-U-O" (standalone, mid-sentence)
+     → KEEP. Single-word fragment that doesn't anchor a sentence restart.
+
+  Long pauses before continuing the SAME thought → KEEP. The speaker is thinking.
+
+KEY DISTINCTION
+===============
+SENTENCE-LEVEL restart (≥5 same opening words, full thought begun and abandoned, then begun again) → CUT
+Anything mid-sentence (word/phrase stutters, reformulations, emphasis, self-corrections within one thought) → KEEP
+
+INPUT FORMAT
+============
+Tab-separated [idx start end gap text]. "gap" is the silence (seconds) before each word.
+A large gap (>0.8s) is one signal of a possible take boundary, but a gap alone is NOT enough — the same-opening-phrase pattern must ALSO be present.
+
+OUTPUT
+======
+STRICT JSON ONLY — an array, no prose, no markdown fences. Each element:
 {"from": <int word index>, "to": <int word index>, "reason": "REPEATED_TAKE" | "FALSE_START", "note": "<one-line human explanation>"}
 
 Rules:
-- "from" and "to" are inclusive word indexes from the input table. Both must exist.
+- "from" and "to" are inclusive word indexes from the input table.
 - Sort ascending by "from".
-- If you see no clear, unambiguous patterns, return []. An empty result is the correct answer for a clean, single-take video."""
+- Return [] if no clear sentence-level restart patterns exist. An empty result is the right answer for clean, single-take videos."""
 
 
 def build_user_message(words: list[dict]) -> str:
