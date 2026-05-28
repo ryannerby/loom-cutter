@@ -96,18 +96,60 @@ function mergeAllSelections(sels: Selection[]): Selection[] {
   return out;
 }
 
+// Moving-average smoother for the peak data. Bigger kernel = more lozenge,
+// less syllable detail. 7 hits a nice balance — phrase shape stays visible,
+// per-syllable spikes get rounded into smooth bumps.
+function smoothPeaks(peaks: number[], kernel = 7): number[] {
+  if (peaks.length < kernel || kernel < 2) return peaks;
+  const out = new Array(peaks.length);
+  const half = Math.floor(kernel / 2);
+  for (let i = 0; i < peaks.length; i++) {
+    let sum = 0;
+    let count = 0;
+    const start = Math.max(0, i - half);
+    const end = Math.min(peaks.length - 1, i + half);
+    for (let j = start; j <= end; j++) {
+      sum += peaks[j];
+      count++;
+    }
+    out[i] = sum / count;
+  }
+  return out;
+}
+
+// Build the closed envelope path for buckets [from..to] using quadratic
+// Bézier curves through midpoints — this is the standard "smooth curve
+// through a polyline" trick that gives C1 continuity. Combined with the
+// smoothed peaks, the waveform reads as soft lozenges instead of spikes.
 function envelopePathSegment(peaks: number[], from: number, to: number): string {
   if (to <= from) return "";
   const n = peaks.length;
   const x = (i: number) => (i / (n - 1)) * SVG_W;
+  const yTop = (i: number) => MID - peaks[i] * MAX_AMP;
+  const yBot = (i: number) => MID + peaks[i] * MAX_AMP;
   const parts: string[] = [];
-  parts.push(`M ${x(from).toFixed(2)} ${(MID - peaks[from] * MAX_AMP).toFixed(2)}`);
-  for (let i = from + 1; i <= to; i++) {
-    parts.push(`L ${x(i).toFixed(2)} ${(MID - peaks[i] * MAX_AMP).toFixed(2)}`);
+
+  // Top edge: Q control,end where control = current point, end = midpoint
+  // to next. This makes the curve pass smoothly THROUGH every data point.
+  parts.push(`M ${x(from).toFixed(2)} ${yTop(from).toFixed(2)}`);
+  for (let i = from + 1; i < to; i++) {
+    const midX = (x(i) + x(i + 1)) / 2;
+    const midY = (yTop(i) + yTop(i + 1)) / 2;
+    parts.push(
+      `Q ${x(i).toFixed(2)} ${yTop(i).toFixed(2)} ${midX.toFixed(2)} ${midY.toFixed(2)}`,
+    );
   }
-  for (let i = to; i >= from; i--) {
-    parts.push(`L ${x(i).toFixed(2)} ${(MID + peaks[i] * MAX_AMP).toFixed(2)}`);
+  parts.push(`L ${x(to).toFixed(2)} ${yTop(to).toFixed(2)}`);
+
+  // Bottom edge: mirror, traversed right-to-left.
+  for (let i = to - 1; i > from; i--) {
+    const midX = (x(i) + x(i - 1)) / 2;
+    const midY = (yBot(i) + yBot(i - 1)) / 2;
+    parts.push(
+      `Q ${x(i).toFixed(2)} ${yBot(i).toFixed(2)} ${midX.toFixed(2)} ${midY.toFixed(2)}`,
+    );
   }
+  parts.push(`L ${x(from).toFixed(2)} ${yBot(from).toFixed(2)}`);
   parts.push("Z");
   return parts.join(" ");
 }
@@ -165,9 +207,12 @@ export default function Waveform({
     return Math.max(MAX_ZOOM_FLOOR, Math.min(MAX_ZOOM_CEILING, ideal));
   }, [duration]);
 
+  // Smooth once when peaks change, then reuse for both kept & cut paths.
+  const smoothedPeaks = useMemo(() => smoothPeaks(peaks, 7), [peaks]);
+
   const { keptPath, cutPath } = useMemo(() => {
-    if (peaks.length < 2 || duration <= 0) return { keptPath: "", cutPath: "" };
-    const n = peaks.length;
+    if (smoothedPeaks.length < 2 || duration <= 0) return { keptPath: "", cutPath: "" };
+    const n = smoothedPeaks.length;
     const keptRanges = invertCuts(duration, cuts);
     const cutRanges: { start: number; end: number }[] = [];
     let prevEnd = 0;
@@ -178,11 +223,17 @@ export default function Waveform({
     if (prevEnd < duration) cutRanges.push({ start: prevEnd, end: duration });
     const buildSegments = (ranges: { start: number; end: number }[]) =>
       ranges
-        .map((r) => envelopePathSegment(peaks, timeToBucket(r.start, duration, n), timeToBucket(r.end, duration, n)))
+        .map((r) =>
+          envelopePathSegment(
+            smoothedPeaks,
+            timeToBucket(r.start, duration, n),
+            timeToBucket(r.end, duration, n),
+          ),
+        )
         .filter(Boolean)
         .join(" ");
     return { keptPath: buildSegments(keptRanges), cutPath: buildSegments(cutRanges) };
-  }, [peaks, cuts, duration]);
+  }, [smoothedPeaks, cuts, duration]);
 
   useEffect(() => {
     let raf = 0;
