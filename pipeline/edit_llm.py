@@ -30,11 +30,19 @@ CRITICAL: Over-cutting is far worse than under-cutting. When in doubt, do NOT cu
 
 THE CORE TEST
 =============
-Did the speaker say the SAME OPENING PHRASE (≥5 words, same intent) TWO OR MORE TIMES in a row?
+Did the speaker attempt the SAME STRUCTURAL THOUGHT two or more times in a row?
+("Structural thought" = same subject, same predicate intent, attempting to convey the
+same idea — even if specific word choice differs between attempts.)
   YES → cut earlier attempt(s), keep the last/cleanest version → REPEATED_TAKE
   NO  → KEEP
 
-Did the speaker hard-pivot with "actually", "let me restart", or "—" → completely different direction?
+A partial attempt followed by a complete version of the SAME sentence?
+  YES → cut the partial → REPEATED_TAKE
+  ("All we would need to do is hop on a quick call just to," → cut, then keep the version
+   that ends with "...just to confirm the scope.")
+
+Did the speaker hard-pivot with "actually", "let me restart", or trail off into a totally
+different direction?
   YES → cut the abandoned fragment → FALSE_START
   NO  → KEEP
 
@@ -64,12 +72,44 @@ REPEATED_TAKE — sentence-level restart:
   Cut:  Everything from "So this first one was a TikTok" through "So this first one-".
   Why:  Multiple full-sentence restarts of the same opening.
 
-FALSE_START — explicit bail:
+REPEATED_TAKE — word-swap restart (same structural intent, different specific words):
+  Raw:  "Hey, my name's Ryan, I'm an Automation Specialist… Hey, my name's Ryan,
+         I'm an Automation Expert, and I came across your job…"
+  Cut:  the first attempt ("Specialist" version).
+  Why:  Same sentence structure, same intent — speaker swapped "Specialist" for
+        "Expert" on the second attempt. Keep the cleaner second take.
+
+  Another:
+  Raw:  "And you already have THE infrastructure set up, so And you already have
+         A GOOD CHUNK OF THE infrastructure set up, so This seems like a quick fix
+         that I could This seems like some quick implementation work that I can
+         knock out of the park for you."
+  Cut:  first three attempts; keep only "This seems like some quick implementation
+        work that I can knock out of the park for you."
+  Why:  Multiple word-swap restarts building toward the final clean version.
+
+REPEATED_TAKE — partial followed by complete:
+  Raw:  "All we would need to do is hop on a quick call just to, All we would need
+         to do is hop on a quick call just to confirm the scope."
+  Cut:  "All we would need to do is hop on a quick call just to,"
+  Why:  Partial trailed off; speaker restarted and completed the same sentence.
+
+  Another:
+  Raw:  "And I can have this up and running for you by, and I can have this up
+         and running for you by next week."
+  Cut:  "and I can have this up and running for you by,"
+  Why:  Partial sentence ending in a trailing comma followed by the complete version.
+
+REPEATED_TAKE — discourse-marker double:
+  Raw:  "So with that being said, So with that being said, I'm very confident…"
+  Cut:  the first "So with that being said,"
+  Why:  Same opener said twice; keep the one that continues into the next sentence.
+
+FALSE_START — explicit word-swap restart mid-sentence:
   Raw:  "I also went ahead and checked out. I also went ahead and verified the
          capabilities of the QUO API."
   Cut:  "I also went ahead and checked out."
-  Why:  "checked out" was the wrong word choice; speaker explicitly restarted the
-        sentence with the right verb. Keep the corrected version.
+  Why:  "checked out" was the wrong verb; speaker restarted with "verified."
 
 WHAT TO KEEP — do NOT flag these (real examples)
 ================================================
@@ -101,8 +141,11 @@ WHAT TO KEEP — do NOT flag these (real examples)
 
 KEY DISTINCTION
 ===============
-SENTENCE-LEVEL restart (≥5 same opening words, full thought begun and abandoned, then begun again) → CUT
+SENTENCE-LEVEL restart of the SAME STRUCTURAL THOUGHT (even with word swaps between attempts) → CUT all but the cleanest attempt
+PARTIAL sentence followed by the COMPLETE version of the same sentence → CUT the partial
 Anything mid-sentence (word/phrase stutters, reformulations, emphasis, self-corrections within one thought) → KEEP
+
+If the user attempted the SAME THOUGHT 3+ times, cut all but the last. Trust that pattern.
 
 INPUT FORMAT
 ============
