@@ -105,6 +105,25 @@ REPEATED_TAKE — discourse-marker double:
   Cut:  the first "So with that being said,"
   Why:  Same opener said twice; keep the one that continues into the next sentence.
 
+  Even shorter version (just 2 words doubled):
+  Raw:  "So the, So the output was educational, historically accurate."
+  Cut:  "So the,"
+  Why:  Same 2-word opener said twice; keep the one that continues.
+
+REPEATED_TAKE — three or more attempts building toward the complete version:
+  Raw:  "I'll show you a, I'll show you a... I'll show you a project that I just
+         delivered for an e-commerce company."
+  Cut:  "I'll show you a, I'll show you a..."
+  Why:  Three attempts at the same opening. Each builds further than the last.
+        Keep only the complete third version.
+
+  Another:
+  Raw:  "This was a heraldry. This was a heraldry account. This was a heraldry
+         brand where they were selling digital products…"
+  Cut:  "This was a heraldry. This was a heraldry account."
+  Why:  Three attempts at "This was a heraldry [X]". Each extends the description.
+        Keep the most complete (third).
+
 FALSE_START — explicit word-swap restart mid-sentence:
   Raw:  "I also went ahead and checked out. I also went ahead and verified the
          capabilities of the QUO API."
